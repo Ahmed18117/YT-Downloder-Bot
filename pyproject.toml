@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "yt-downloder-bot"
+version = "0.1.0"
+description = ""
+authors = ["Yeasin Mollik <yeasin1603@cseku.ac.bd>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pytube = "^12.1.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
