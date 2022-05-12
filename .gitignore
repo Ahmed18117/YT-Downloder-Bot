@@ -133,3 +133,6 @@ dmypy.json
 
 # Replit setting
 .replit
+
+# Credentials
+creds.json
