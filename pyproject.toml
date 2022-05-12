@@ -8,6 +8,7 @@ authors = ["Yeasin Mollik <yeasin1603@cseku.ac.bd>"]
 python = "^3.8"
 pytube = "^12.1.0"
 requests = "^2.27.1"
+python-telegram-bot = "^13.11"
 
 [tool.poetry.dev-dependencies]
 
