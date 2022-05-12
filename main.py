@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import requests
 from pytube import YouTube, Stream
@@ -17,6 +18,9 @@ from telegram.ext import (
     Filters,
     ConversationHandler,
 )
+
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_AUDIO = range(4)
 links_by_user = {}
@@ -73,12 +77,15 @@ def download_video(update: Update, context: CallbackContext):
     def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
         nonlocal last_progress
         filesize = stream.filesize
+        name = stream.title
         bytes_received = filesize - bytes_remaining
         bar_length = 25
-        progress = int(bytes_received / filesize * bar_length)
+        bars = int(bytes_received / filesize * bar_length)
+        progress = f"📁 {name}\n\n\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                          text=f"{'▣' * progress}{(bar_length - progress) * '▢'}")
+                                          text=progress)
+
             last_progress = progress
 
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
