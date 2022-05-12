@@ -1,19 +1,14 @@
-import json
+import logging
 import logging
 import os
-import requests
+
 from pytube import YouTube, Stream
-from time import sleep
-from telegram.chataction import ChatAction
-from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, Update,
-                      ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove)
+from telegram import (Update,
+                      ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (
     Updater,
     CommandHandler,
-    CallbackQueryHandler,
     CallbackContext,
-    InvalidCallbackData,
-    PicklePersistence,
     MessageHandler,
     Filters,
     ConversationHandler,
@@ -104,7 +99,7 @@ def cancel(update: Update, context: CallbackContext):
 def main():
     credentials = os.environ
 
-    updater = Updater(credentials['tg_token'], use_context=True)
+    updater = Updater(credentials['tg_token'], use_context=True, base_url='127.0.0.1:8081/bot')
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
