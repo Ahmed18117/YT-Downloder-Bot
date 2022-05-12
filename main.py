@@ -1,7 +1,7 @@
 import json
 import os
 import requests
-from pytube import YouTube
+from pytube import YouTube, Stream
 from time import sleep
 from telegram.chataction import ChatAction
 from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, Update,
@@ -52,9 +52,7 @@ def get_size_format(b, factor=1024, suffix="B"):
 def select_resolution(update: Update, context: CallbackContext):
     global streams_by_user, links_by_user
     yt = YouTube(url=links_by_user[update.effective_chat.id])
-
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
-    streams_by_user[update.effective_chat.id] = streams
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
@@ -62,6 +60,35 @@ def select_resolution(update: Update, context: CallbackContext):
     update.message.reply_text(text="Choose your resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
                                                                one_time_keyboard=True))
+
+    return DOWNLOAD_VIDEO
+
+
+def download_video(update: Update, context: CallbackContext):
+    c_id = update.effective_chat.id
+    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")['message_id']
+
+    last_progress = ""
+
+    def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
+        nonlocal last_progress
+        filesize = stream.filesize
+        bytes_received = filesize - bytes_remaining
+        bar_length = 25
+        progress = int(bytes_received / filesize * bar_length)
+        if progress != last_progress:
+            context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                          text=f"{'▣' * progress}{(bar_length - progress) * '▢'}")
+            last_progress = progress
+
+    yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
+    stream_id = int(update.message.text.split('.')[0]) - 1
+    download_location = streams[stream_id].download()
+    context.bot.delete_message(chat_id=c_id, message_id=m_id)
+    update.message.reply_text(text=f"Download complete! File saved to {download_location}",
+                              reply_markup=ReplyKeyboardRemove())
+    return ConversationHandler.END
 
 
 def cancel(update: Update, context: CallbackContext):
@@ -79,8 +106,10 @@ def main():
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution)],
+            DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)])
+        fallbacks=[CommandHandler('cancel', cancel)]
+    )
 
     dp.add_handler(conv_handler)
     updater.start_polling()
