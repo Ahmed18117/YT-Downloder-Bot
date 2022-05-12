@@ -7,6 +7,7 @@ authors = ["Yeasin Mollik <yeasin1603@cseku.ac.bd>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 pytube = "^12.1.0"
+requests = "^2.27.1"
 
 [tool.poetry.dev-dependencies]
 
