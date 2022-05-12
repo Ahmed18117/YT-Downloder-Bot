@@ -91,7 +91,7 @@ def download_video(update: Update, context: CallbackContext):
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     stream_id = int(update.message.text.split('.')[0]) - 1
-    download_location = streams[stream_id].download('/Downloads')
+    download_location = streams[stream_id].download('/home/ymollik/Code/YT-Downloder-Bot/Downloads/')
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
     update.message.reply_text(text=f"Download complete! File saved to {download_location}",
                               reply_markup=ReplyKeyboardRemove())
