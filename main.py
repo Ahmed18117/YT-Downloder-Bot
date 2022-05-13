@@ -90,7 +90,7 @@ def download_video(update: Update, context: CallbackContext):
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Download complete! Please wait while I send you the video...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
-    context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'))
+    context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'), filename = streams[stream_id].default_filename)
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Finished sending!")
     return ConversationHandler.END
