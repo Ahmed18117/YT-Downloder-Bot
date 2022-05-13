@@ -33,10 +33,10 @@ def youtube_link(update: Update, context: CallbackContext):
     global links_by_user
     links_by_user[update.effective_chat.id] = update.message.text
 
-    keyword = [["🎬 Download as Video"], ["🎵 Download as Mp3"], ["❌ Exit"]]
+    keyword = [["🎬 Download Video"], ["🎵 Download Mp3"], ["❌ Exit"]]
     update.message.reply_text(text="Choose your format: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyword, resize_keyboard=True,
-                                                               one_time_keyboard=True))
+                                                               one_time_keyboard=True), quote=True)
 
     return SELECT_RESOLUTION
 
@@ -58,7 +58,7 @@ def select_resolution(update: Update, context: CallbackContext):
         stream = streams[i]
         keyboard.append([f"{i + 1}. {stream.resolution} --> {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
-    update.message.reply_text(text="Choose your resolution: ",
+    update.message.reply_text(text="Choose resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
                                                                one_time_keyboard=True), quote=True)
 
@@ -74,7 +74,7 @@ def select_bitrate(update: Update, context: CallbackContext):
         stream = streams[i]
         keyboard.append([f"{i + 1}. {stream.abr} --> {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
-    update.message.reply_text(text="Choose your resolution: ",
+    update.message.reply_text(text="Choose bitrate: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
                                                                one_time_keyboard=True), quote=True)
 
@@ -130,13 +130,13 @@ def download_mp3(update: Update, context: CallbackContext):
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Finished sending!")
     os.remove(streams[stream_id].default_filename)
+    os.remove(streams[stream_id].default_filename.replace('.mp4', '.mp3'))
     return ConversationHandler.END
 
 
 def download_video(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
-    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
-        "message_id"]
+    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")["message_id"]
 
     last_progress = ""
 
@@ -161,14 +161,13 @@ def download_video(update: Update, context: CallbackContext):
     streams[stream_id].download()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Download complete! Please wait while I send you the video...")
+                                  text="Download complete! Sending the video now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
     context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'),
                            caption=streams[stream_id].title, supports_streaming=True, duration=length,
                            reply_markup=ReplyKeyboardRemove())
-    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Finished sending!")
-    # os.remove(streams[stream_id].default_filename)
+    context.bot.delete_message(chat_id=c_id, message_id=m_id)
+    os.remove(streams[stream_id].default_filename)
     return ConversationHandler.END
 
 
@@ -186,8 +185,8 @@ def main():
         entry_points=[CommandHandler('start', start), MessageHandler(Filters.regex(yt_regex), youtube_link)],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
-            SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download as Video"), select_resolution),
-                                MessageHandler(Filters.text("🎵 Download as Mp3"), select_bitrate),
+            SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download Video"), select_resolution),
+                                MessageHandler(Filters.text("🎵 Download Mp3"), select_bitrate),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
                              MessageHandler(Filters.regex("."), download_video)],
