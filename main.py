@@ -110,9 +110,10 @@ def main():
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
-                                MessageHandler(Filters.regex("Exit"), exit_it)],
-            DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video),
-                             MessageHandler(Filters.regex("Exit"), exit_it)],
+                                MessageHandler(Filters.text("❌ Exit"), exit_it)],
+            DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
+                             MessageHandler(Filters.regex("."), download_video),
+                             ],
         },
         fallbacks=[]
     )
