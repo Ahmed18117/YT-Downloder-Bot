@@ -1,10 +1,9 @@
 import logging
-import logging
 import os
-
+from functools import wraps
 from pytube import YouTube, Stream
 from telegram import (Update,
-                      ReplyKeyboardMarkup, ReplyKeyboardRemove)
+                      ReplyKeyboardMarkup, ReplyKeyboardRemove, ChatAction)
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -76,7 +75,7 @@ def download_video(update: Update, context: CallbackContext):
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"📁 {name}\n\n\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"📁 {name}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
@@ -85,10 +84,12 @@ def download_video(update: Update, context: CallbackContext):
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     stream_id = int(update.message.text.split('.')[0]) - 1
-    download_location = streams[stream_id].download()
+    streams[stream_id].download()
+
+    context.bot.edit_message_text(chat_id=c_id, message_id=m_id, text="Download complete! Sending your video...")
+    context.bot.send_chat_action(chat_id=c_id, action=ChatAction.TYPING)
+    context.bot.send_video(chat_id=c_id, timeout=100, video=open(streams[stream_id].default_filename, 'rb'))
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
-    update.message.reply_text(text="Download complete! Sending file..")
-    context.bot.send_video(chat_id=c_id, video=open("download_location", 'rb'))
     return ConversationHandler.END
 
 
