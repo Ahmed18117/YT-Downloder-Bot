@@ -10,6 +10,7 @@ pytube = "^12.1.0"
 requests = "^2.27.1"
 python-telegram-bot = "^13.11"
 keyboard = "^0.13.5"
+humanfriendly = "^10.0"
 
 [tool.poetry.dev-dependencies]
 
