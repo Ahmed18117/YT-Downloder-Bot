@@ -1,19 +1,14 @@
-import json
+import logging
 import logging
 import os
-import requests
+
 from pytube import YouTube, Stream
-from time import sleep
-from telegram.chataction import ChatAction
-from telegram import (InlineKeyboardButton, InlineKeyboardMarkup, Update,
-                      ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove)
+from telegram import (Update,
+                      ReplyKeyboardMarkup, ReplyKeyboardRemove)
 from telegram.ext import (
     Updater,
     CommandHandler,
-    CallbackQueryHandler,
     CallbackContext,
-    InvalidCallbackData,
-    PicklePersistence,
     MessageHandler,
     Filters,
     ConversationHandler,
@@ -92,8 +87,8 @@ def download_video(update: Update, context: CallbackContext):
     stream_id = int(update.message.text.split('.')[0]) - 1
     download_location = streams[stream_id].download()
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
-    update.message.reply_text(text=f"Download complete! File saved to {download_location}",
-                              reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(text="Download complete! Sending file..")
+    context.bot.send_video(chat_id=c_id, video=open("download_location", 'rb'))
     return ConversationHandler.END
 
 
@@ -104,7 +99,7 @@ def cancel(update: Update, context: CallbackContext):
 def main():
     credentials = os.environ
 
-    updater = Updater(credentials['tg_token'], use_context=True)
+    updater = Updater(credentials['tg_token'], use_context=True, base_url='127.0.0.1:8081/bot')
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
