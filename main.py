@@ -31,7 +31,7 @@ def youtube_link(update: Update, context: CallbackContext):
     global links_by_user
     links_by_user[update.effective_chat.id] = update.message.text
 
-    keyword = [["Download as Video"], ["Download as Mp3"], ["Back"]]
+    keyword = [["Download as Video"], ["Download as Mp3"], ["Exit"]]
     update.message.reply_text(text="Choose your format: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyword, resize_keyboard=True,
                                                                one_time_keyboard=True))
@@ -55,6 +55,7 @@ def select_resolution(update: Update, context: CallbackContext):
     for i in range(0, len(streams)):
         stream = streams[i]
         keyboard.append([f"{i + 1}. {stream.resolution} -> {get_size_format(stream.filesize)}"])
+    keyboard.append(["Exit"])
     update.message.reply_text(text="Choose your resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
                                                                one_time_keyboard=True))
@@ -94,24 +95,25 @@ def download_video(update: Update, context: CallbackContext):
     return ConversationHandler.END
 
 
-def cancel(update: Update, context: CallbackContext):
-    pass
+def exit_it(update: Update, context: CallbackContext):
+    update.message.reply_text(text="Alright!")
+    return ConversationHandler.END
 
 
 def main():
     credentials = os.environ
-
     updater = Updater(credentials['tg_token'], use_context=True, base_url='127.0.0.1:8081/bot')
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', start), [MessageHandler(Filters.regex(yt_regex), youtube_link)]],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
-            SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution)],
+            SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
+                                MessageHandler(Filters.regex("Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video)],
         },
-        fallbacks=[CommandHandler('cancel', cancel)]
+        fallbacks=[CommandHandler('Exit', exit_it)]
     )
 
     dp.add_handler(conv_handler)
