@@ -16,7 +16,7 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_AUDIO = range(4)
+YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_MP3 = range(4)
 links_by_user = {}
 streams_by_user = {}
 yt_regex = "(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(?:.*v=|v\/|\/)([\w\-_]+)\&?"
@@ -64,7 +64,19 @@ def select_resolution(update: Update, context: CallbackContext):
 
 
 def select_bitrate(update: Update, context: CallbackContext):
-    pass
+    streams = YouTube(url=links_by_user[update.effective_chat.id]).streams.filter(only_audio=True,
+                                                                                  file_extension='mp4').order_by(
+        'abr').desc()
+    keyboard = []
+    for i in range(0, len(streams)):
+        stream = streams[i]
+        keyboard.append([f"{i + 1}. {stream.abr} --> {get_size_format(stream.filesize)}"])
+    keyboard.append(["❌ Exit"])
+    update.message.reply_text(text="Choose your resolution: ",
+                              reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
+                                                               one_time_keyboard=True), quote=True)
+
+    return DOWNLOAD_VIDEO
 
 
 def download_mp3(update: Update, context: CallbackContext):
@@ -124,12 +136,12 @@ def main():
         entry_points=[CommandHandler('start', start), MessageHandler(Filters.regex(yt_regex), youtube_link)],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
-            SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
-                                [MessageHandler(Filters.regex("Download as Audio"), select_bitrate)],
+            SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download as Video"), select_resolution),
+                                MessageHandler(Filters.text("🎵 Download as Mp3"), select_bitrate),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
-                             MessageHandler(Filters.regex("."), download_video),
-                             MessageHandler(Filters.regex("Download as Audio"), download_mp3)],
+                             MessageHandler(Filters.regex("."), download_video)],
+            DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it)],
         },
         fallbacks=[]
     )
