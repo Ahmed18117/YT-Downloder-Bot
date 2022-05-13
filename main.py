@@ -1,5 +1,6 @@
 import logging
 import os
+from mutagen.easyid3 import EasyID3
 import subprocess
 from humanfriendly import format_timespan
 from pytube import YouTube, Stream
@@ -114,6 +115,12 @@ def download_mp3(update: Update, context: CallbackContext):
     bash_command = f"ffmpeg -i \"{video_path}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_path}\""
     process = subprocess.Popen(bash_command, shell=True)
     process.wait()
+
+    audio = EasyID3(mp3_path.split('/')[-1])
+    audio["title"] = yt.title
+    audio["artist"] = yt.author
+    audio.save()
+
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Conversion complete! Sending the mp3 now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_AUDIO)

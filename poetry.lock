@@ -93,6 +93,14 @@ python-versions = "*"
 pyobjc = {version = "*", markers = "sys_platform == \"darwin\""}
 
 [[package]]
+name = "mutagen"
+version = "1.45.1"
+description = "read and write audio tags for many formats"
+category = "main"
+optional = false
+python-versions = ">=3.5, <4"
+
+[[package]]
 name = "pyobjc"
 version = "8.5"
 description = "Python<->ObjC Interoperability Module"
@@ -2087,7 +2095,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "ee75835c6096b14244d5bf334012bc7f769cc5384ef3c4f9acc1c5449241755a"
+content-hash = "d4d4467e3658de21a04121e62252bf985b28dd5483aecec6058258d3901ceda4"
 
 [metadata.files]
 apscheduler = [
@@ -2135,6 +2143,10 @@ idna = [
 keyboard = [
     {file = "keyboard-0.13.5-py3-none-any.whl", hash = "sha256:8e9c2422f1217e0bd84489b9ecd361027cc78415828f4fe4f88dd4acd587947b"},
     {file = "keyboard-0.13.5.zip", hash = "sha256:63ed83305955939ca5c9a73755e5cc43e8242263f5ad5fd3bb7e0b032f3d308b"},
+]
+mutagen = [
+    {file = "mutagen-1.45.1-py3-none-any.whl", hash = "sha256:9c9f243fcec7f410f138cb12c21c84c64fde4195481a30c9bfb05b5f003adfed"},
+    {file = "mutagen-1.45.1.tar.gz", hash = "sha256:6397602efb3c2d7baebd2166ed85731ae1c1d475abca22090b7141ff5034b3e1"},
 ]
 pyobjc = [
     {file = "pyobjc-8.5-py3-none-any.whl", hash = "sha256:72917dfb2cf138c06464c25ccf0b528877b997bbf0fd9854ce0523e7e739d955"},

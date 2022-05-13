@@ -11,6 +11,7 @@ requests = "^2.27.1"
 python-telegram-bot = "^13.11"
 keyboard = "^0.13.5"
 humanfriendly = "^10.0"
+mutagen = "^1.45.1"
 
 [tool.poetry.dev-dependencies]
 
