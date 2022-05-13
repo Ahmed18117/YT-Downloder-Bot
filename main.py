@@ -111,7 +111,8 @@ def main():
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
                                 MessageHandler(Filters.regex("Exit"), exit_it)],
-            DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video)],
+            DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video),
+                             MessageHandler(Filters.regex("Exit"), exit_it)],
         },
         fallbacks=[]
     )
