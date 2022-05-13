@@ -113,7 +113,7 @@ def main():
                                 MessageHandler(Filters.regex("Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.regex("."), download_video)],
         },
-        fallbacks=[MessageHandler(Filters.regex('Exit'), exit_it)]
+        fallbacks=[]
     )
 
     dp.add_handler(conv_handler)
