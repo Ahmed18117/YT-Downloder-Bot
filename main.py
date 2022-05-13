@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 from humanfriendly import format_timespan
 from pytube import YouTube, Stream
 from telegram import (Update,
@@ -76,11 +77,53 @@ def select_bitrate(update: Update, context: CallbackContext):
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
                                                                one_time_keyboard=True), quote=True)
 
-    return DOWNLOAD_VIDEO
+    return DOWNLOAD_MP3
 
 
 def download_mp3(update: Update, context: CallbackContext):
-    pass
+    c_id = update.effective_chat.id
+    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
+        "message_id"]
+
+    last_progress = ""
+
+    def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
+        nonlocal last_progress
+        filesize = stream.filesize
+        name = stream.title
+        bytes_received = filesize - bytes_remaining
+        bar_length = 25
+        bars = int(bytes_received / filesize * bar_length)
+        progress = f"📁 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        if progress != last_progress:
+            context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                          text=progress)
+            last_progress = progress
+
+    yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    length = yt.length
+    duration = format_timespan(length)
+    streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
+    stream_id = int(update.message.text.split('.')[0]) - 1
+    video_path = '/home/ymollik/Code/YT-Downloder-Bot/' + streams[stream_id].default_filename
+    mp3_path = video_path.replace(".mp4", ".mp3")
+    mp3_name = mp3_path.split('/')[-1]
+    streams[stream_id].download()
+    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                  text="Download complete. Converting to mp3...")
+    bash_command = f"ffmpeg -i \"{video_path}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_path}\""
+    process = subprocess.Popen(bash_command, shell=True)
+    process.wait()
+    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                  text="Conversion complete! Sending the mp3 now...")
+    context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_AUDIO)
+    context.bot.send_audio(chat_id=c_id, timeout=1000, audio=open(mp3_name, 'rb'),
+                           duration=length,
+                           reply_markup=ReplyKeyboardRemove())
+    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                  text="Finished sending!")
+    os.remove(streams[stream_id].default_filename)
+    return ConversationHandler.END
 
 
 def download_video(update: Update, context: CallbackContext):
@@ -118,7 +161,7 @@ def download_video(update: Update, context: CallbackContext):
                            reply_markup=ReplyKeyboardRemove())
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Finished sending!")
-    os.remove(streams[stream_id].default_filename)
+    # os.remove(streams[stream_id].default_filename)
     return ConversationHandler.END
 
 
@@ -141,7 +184,8 @@ def main():
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
                              MessageHandler(Filters.regex("."), download_video)],
-            DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it)],
+            DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it),
+                           MessageHandler(Filters.regex("."), download_mp3)],
         },
         fallbacks=[]
     )
