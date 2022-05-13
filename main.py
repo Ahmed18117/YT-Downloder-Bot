@@ -83,7 +83,8 @@ def download_video(update: Update, context: CallbackContext):
             last_progress = progress
 
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
-    duration = format_timespan(yt.length)
+    length = yt.length
+    duration = format_timespan(length)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     stream_id = int(update.message.text.split('.')[0]) - 1
     streams[stream_id].download()
@@ -92,9 +93,10 @@ def download_video(update: Update, context: CallbackContext):
                                   text="Download complete! Please wait while I send you the video...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
     context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'),
-                           caption=streams[stream_id].title, supports_streaming=True)
+                           caption=streams[stream_id].title, supports_streaming=True, duration=length)
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Finished sending!")
+    os.remove(streams[stream_id].default_filename)
     return ConversationHandler.END
 
 
