@@ -23,7 +23,7 @@ yt_regex = "(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(
 
 
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Please enter any youtube video link: ")
+    update.message.reply_text("Please enter any youtube video link: ", quote=True)
     return YOUTUBE_LINK
 
 
@@ -58,14 +58,15 @@ def select_resolution(update: Update, context: CallbackContext):
     keyboard.append(["❌ Exit"])
     update.message.reply_text(text="Choose your resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
-                                                               one_time_keyboard=True))
+                                                               one_time_keyboard=True), quote=True)
 
     return DOWNLOAD_VIDEO
 
 
 def download_video(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
-    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")['message_id']
+    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
+        "message_id"]
 
     last_progress = ""
 
@@ -93,7 +94,8 @@ def download_video(update: Update, context: CallbackContext):
                                   text="Download complete! Please wait while I send you the video...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
     context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'),
-                           caption=streams[stream_id].title, supports_streaming=True, duration=length)
+                           caption=streams[stream_id].title, supports_streaming=True, duration=length,
+                           reply_markup=ReplyKeyboardRemove())
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Finished sending!")
     os.remove(streams[stream_id].default_filename)
