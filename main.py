@@ -87,8 +87,8 @@ def download_video(update: Update, context: CallbackContext):
     stream_id = int(update.message.text.split('.')[0]) - 1
     download_location = streams[stream_id].download()
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
-    update.message.reply_text(text=f"Download complete! File saved to {download_location}",
-                              reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(text="Download complete! Sending file..")
+    context.bot.send_video(chat_id=c_id, video=open("download_location", 'rb'))
     return ConversationHandler.END
 
 
