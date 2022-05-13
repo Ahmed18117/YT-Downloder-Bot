@@ -1,2 +1,2 @@
 # YT-Downloder-Bot
-Telegram bot for downloading youtube videos in different format!
+Telegram bot for downloading youtube videos in different formats!
