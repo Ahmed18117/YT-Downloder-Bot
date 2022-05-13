@@ -16,7 +16,7 @@ from telegram.ext import (
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_AUDIO = range(4)
+YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_MP3 = range(4)
 links_by_user = {}
 streams_by_user = {}
 yt_regex = "(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(?:.*v=|v\/|\/)([\w\-_]+)\&?"
@@ -63,6 +63,17 @@ def select_resolution(update: Update, context: CallbackContext):
     return DOWNLOAD_VIDEO
 
 
+def select_bitrate(update: Update, context: CallbackContext):
+    print("Hello")
+    yt = YouTube(url=links_by_user[update.effective_chat.id]).streams
+    for i in range(0, len(yt)):
+        print(yt[i])
+
+
+def download_mp3(update: Update, context: CallbackContext):
+    pass
+
+
 def download_video(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
     m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
@@ -90,7 +101,6 @@ def download_video(update: Update, context: CallbackContext):
     stream_id = int(update.message.text.split('.')[0]) - 1
     streams[stream_id].download()
 
-
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Download complete! Please wait while I send you the video...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
@@ -117,11 +127,12 @@ def main():
         entry_points=[CommandHandler('start', start), MessageHandler(Filters.regex(yt_regex), youtube_link)],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
-            SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
+            SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download as Video"), select_resolution),
+                                MessageHandler(Filters.text("🎵 Download as Mp3"), select_bitrate),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
-                             MessageHandler(Filters.regex("."), download_video),
-                             ],
+                             MessageHandler(Filters.regex("."), download_video)],
+            DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it)],
         },
         fallbacks=[]
     )
