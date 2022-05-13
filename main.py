@@ -106,7 +106,7 @@ def main():
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start), [MessageHandler(Filters.regex(yt_regex), youtube_link)]],
+        entry_points=[CommandHandler('start', start), MessageHandler(Filters.regex(yt_regex), youtube_link)],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
