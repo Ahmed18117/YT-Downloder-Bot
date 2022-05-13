@@ -96,7 +96,7 @@ def download_video(update: Update, context: CallbackContext):
 
 
 def exit_it(update: Update, context: CallbackContext):
-    update.message.reply_text(text="Alright!")
+    update.message.reply_text(text="Alright!", reply_markup=ReplyKeyboardRemove())
     return ConversationHandler.END
 
 
