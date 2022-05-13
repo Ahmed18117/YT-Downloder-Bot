@@ -31,7 +31,7 @@ def youtube_link(update: Update, context: CallbackContext):
     global links_by_user
     links_by_user[update.effective_chat.id] = update.message.text
 
-    keyword = [["Download as Video"], ["Download as Mp3"], ["Exit"]]
+    keyword = [["🎬 Download as Video"], ["🎵 Download as Mp3"], ["❌ Exit"]]
     update.message.reply_text(text="Choose your format: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyword, resize_keyboard=True,
                                                                one_time_keyboard=True))
@@ -54,7 +54,7 @@ def select_resolution(update: Update, context: CallbackContext):
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
-        keyboard.append([f"{i + 1}. {stream.resolution} -> {get_size_format(stream.filesize)}"])
+        keyboard.append([f"{i + 1}. {stream.resolution} --> {get_size_format(stream.filesize)}"])
     keyboard.append(["Exit"])
     update.message.reply_text(text="Choose your resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
