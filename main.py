@@ -1,6 +1,6 @@
 import logging
 import os
-from functools import wraps
+from humanfriendly import format_timespan
 from pytube import YouTube, Stream
 from telegram import (Update,
                       ReplyKeyboardMarkup, ReplyKeyboardRemove, ChatAction)
@@ -76,13 +76,14 @@ def download_video(update: Update, context: CallbackContext):
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"📁 {name}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"📁 {name}\n⏳ duration\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
             last_progress = progress
 
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    duration = format_timespan(yt.length)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     stream_id = int(update.message.text.split('.')[0]) - 1
     streams[stream_id].download()
