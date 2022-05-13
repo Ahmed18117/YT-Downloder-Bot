@@ -63,6 +63,14 @@ def select_resolution(update: Update, context: CallbackContext):
     return DOWNLOAD_VIDEO
 
 
+def select_bitrate(update: Update, context: CallbackContext):
+    pass
+
+
+def download_mp3(update: Update, context: CallbackContext):
+    pass
+
+
 def download_video(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
     m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
@@ -89,7 +97,6 @@ def download_video(update: Update, context: CallbackContext):
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     stream_id = int(update.message.text.split('.')[0]) - 1
     streams[stream_id].download()
-
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text="Download complete! Please wait while I send you the video...")
@@ -118,10 +125,11 @@ def main():
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.regex("Download as Video"), select_resolution),
+                                [MessageHandler(Filters.regex("Download as Audio"), select_bitrate)],
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
                              MessageHandler(Filters.regex("."), download_video),
-                             ],
+                             MessageHandler(Filters.regex("Download as Audio"), download_mp3)],
         },
         fallbacks=[]
     )
