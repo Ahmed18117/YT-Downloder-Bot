@@ -118,7 +118,7 @@ def download_mp3(update: Update, context: CallbackContext):
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"🎧 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"Downloading...\n\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
@@ -135,7 +135,7 @@ def download_mp3(update: Update, context: CallbackContext):
     mp3_size = length * 16
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nDownload complete!\nStarting conversion to mp3...")
+                                  text=f"Download complete!\n\nStarting conversion to mp3...")
     bash_command = f"ffmpeg -i \"{video_name}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_name}\""
     process = subprocess.Popen(bash_command, cwd=os.getcwd(),
                                stdout=subprocess.PIPE,
@@ -146,7 +146,7 @@ def download_mp3(update: Update, context: CallbackContext):
     last_progress = '▢' * 25
     last_time = time.time()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion in progress...\n{last_progress}")
+                                  text=f"Converting\n\n{last_progress}")
     for line in process.stdout:
         if line.startswith('size'):
             mp3_converted_size = int(line.split()[1][:-2])
@@ -156,13 +156,13 @@ def download_mp3(update: Update, context: CallbackContext):
             diff = time.time() - last_time
             if diff >= 3 and progress != last_progress:
                 context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                              text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion in progress...\n{progress}")
+                                              text=f"Converting\n\n{progress}")
                 last_progress = progress
                 last_time = time.time()
 
     if last_progress != '▣' * 25:
         context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                      text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion Complete!\n{'▣' * 25}")
+                                      text=f"Conversion Complete!\n\n{'▣' * 25}")
 
     def get_metadata():
         nonlocal mp3_title, mp3_artist
@@ -184,7 +184,7 @@ def download_mp3(update: Update, context: CallbackContext):
     audio.save()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion complete!\nSending the mp3 now...")
+                                  text=f"Conversion complete!\n\nSending the mp3 now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_AUDIO)
     context.bot.send_audio(chat_id=c_id, timeout=1000, audio=open(mp3_name, 'rb'),
                            duration=length,
@@ -192,8 +192,8 @@ def download_mp3(update: Update, context: CallbackContext):
                            reply_to_message_id=messages_by_user[c_id],
                            caption=mp3_artist + " - " + mp3_title)
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
-    os.remove(streams[stream_id].default_filename)
-    os.remove(streams[stream_id].default_filename.replace('.mp4', '.mp3'))
+    os.remove(video_name)
+    os.remove(mp3_name)
     return ConversationHandler.END
 
 
@@ -211,7 +211,7 @@ def download_video(update: Update, context: CallbackContext):
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"📹 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"Downloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
@@ -226,7 +226,7 @@ def download_video(update: Update, context: CallbackContext):
     streams[stream_id].download()
     urllib.request.urlretrieve(yt.thumbnail_url, "thumbnail.jpg")
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"📹 {name}\n⏳ {duration}\n\n\nDownload complete!\nSending the video now...")
+                                  text=f"Download complete!\n\nSending the video now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
     context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'),
                            caption=streams[stream_id].title, supports_streaming=True, duration=length,
@@ -234,6 +234,7 @@ def download_video(update: Update, context: CallbackContext):
                            reply_to_message_id=messages_by_user[c_id], thumb=open("thumbnail.jpg", 'rb'))
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
     os.remove(streams[stream_id].default_filename)
+    os.remove("thumbnail.jpg")
     return ConversationHandler.END
 
 
