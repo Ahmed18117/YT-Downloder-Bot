@@ -204,10 +204,13 @@ def main():
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
             SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download Video"), select_resolution),
                                 MessageHandler(Filters.text("🎵 Download Mp3"), select_bitrate),
+                                MessageHandler(Filters.regex(yt_regex), youtube_link),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
+                             MessageHandler(Filters.regex(yt_regex), youtube_link),
                              MessageHandler(Filters.text, download_video)],
             DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it),
+                           MessageHandler(Filters.regex(yt_regex), youtube_link),
                            MessageHandler(Filters.text, download_mp3)],
         },
         fallbacks=[]
