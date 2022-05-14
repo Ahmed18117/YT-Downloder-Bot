@@ -5,6 +5,7 @@ from mutagen.easyid3 import EasyID3
 import subprocess
 from humanfriendly import format_timespan
 from pytube import YouTube, Stream
+import time
 from telegram import (Update,
                       ReplyKeyboardMarkup, ReplyKeyboardRemove, ChatAction)
 from telegram.ext import (
@@ -132,12 +133,32 @@ def download_mp3(update: Update, context: CallbackContext):
     video_path = '/home/ymollik/Code/YT-Downloder-Bot/' + streams[stream_id].default_filename
     mp3_path = video_path.replace(".mp4", ".mp3")
     mp3_name = mp3_path.split('/')[-1]
+    mp3_size = length * 16
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nDownload complete!\nConverting to mp3...")
+                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nDownload complete!\nStarting conversion to mp3...")
     bash_command = f"ffmpeg -i \"{video_path}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_path}\""
-    process = subprocess.Popen(bash_command, shell=True)
-    process.wait()
+    process = subprocess.Popen(bash_command,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT,
+                               shell=True,
+                               universal_newlines=True)
+
+    last_progress = ""
+    for line in process.stdout:
+        if line.startswith('size'):
+            mp3_converted_size = int(line.split()[1][:-2])
+            bar_length = 25
+            bars = int(mp3_converted_size / mp3_size * bar_length)
+            progress = f"{'▣' * bars}{(bar_length - bars) * '▢'}"
+            if progress != last_progress:
+                context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                              text=f"🎧 {name}\n⏳ {duration}\n\n\nConverting...!\n{progress}")
+                last_progress = progress
+            time.sleep(3)
+    if last_progress != '▣' * 25:
+        context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                      text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion Complete!\n{'▣' * 25}")
 
     def get_metadata():
         nonlocal mp3_title, mp3_artist
@@ -219,7 +240,7 @@ def exit_it(update: Update, context: CallbackContext):
 
 def main():
     credentials = os.environ
-    updater = Updater(credentials['tg_token'], use_context=True, base_url='127.0.0.1:8081/bot')
+    updater = Updater(credentials['tg_token'], use_context=True, base_url='185.194.218.238:8081/bot')
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
