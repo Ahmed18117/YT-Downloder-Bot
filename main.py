@@ -1,5 +1,6 @@
 import logging
 import os
+import youtube_dl
 from mutagen.easyid3 import EasyID3
 import subprocess
 from humanfriendly import format_timespan
@@ -72,7 +73,7 @@ def select_bitrate(update: Update, context: CallbackContext):
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
-        keyboard.append([f"{i + 1}. {stream.abr} --> {get_size_format(stream.filesize)}"])
+        keyboard.append([f"{i + 1}. {stream.abr} ➡️ {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
     update.message.reply_text(text="Choose bitrate: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
@@ -116,9 +117,23 @@ def download_mp3(update: Update, context: CallbackContext):
     process = subprocess.Popen(bash_command, shell=True)
     process.wait()
 
+    def get_metadata():
+        nonlocal mp3_title, mp3_artist
+        url = links_by_user[update.effective_chat.id]
+        ydl = youtube_dl.YoutubeDL({})
+        with ydl:
+            video = ydl.extract_info(url, download=False)
+
+        if 'artist' in video:
+            mp3_artist = video['artist']
+        if 'track' in video:
+            mp3_title = video['track']
+
+    mp3_title, mp3_artist = yt.title, yt.author
+    get_metadata()
     audio = EasyID3(mp3_path.split('/')[-1])
-    audio["title"] = yt.title
-    audio["artist"] = yt.author
+    audio["title"] = mp3_title
+    audio["artist"] = mp3_artist
     audio.save()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
