@@ -130,15 +130,14 @@ def download_mp3(update: Update, context: CallbackContext):
     duration = format_timespan(length)
     streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
     stream_id = int(update.message.text[:1]) - 1
-    video_path = '/home/ymollik/Code/YT-Downloder-Bot/' + streams[stream_id].default_filename
-    mp3_path = video_path.replace(".mp4", ".mp3")
-    mp3_name = mp3_path.split('/')[-1]
+    video_name = '/home/ymollik/Code/YT-Downloder-Bot/' + streams[stream_id].default_filename
+    mp3_name = video_name.replace(".mp4", ".mp3")
     mp3_size = length * 16
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text=f"🎧 {name}\n⏳ {duration}\n\n\nDownload complete!\nStarting conversion to mp3...")
-    bash_command = f"ffmpeg -i \"{video_path}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_path}\""
-    process = subprocess.Popen(bash_command,
+    bash_command = f"ffmpeg -i \"{video_name}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_name}\""
+    process = subprocess.Popen(bash_command, cwd=os.getcwd(),
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
                                shell=True,
@@ -153,7 +152,7 @@ def download_mp3(update: Update, context: CallbackContext):
             progress = f"{'▣' * bars}{(bar_length - bars) * '▢'}"
             if progress != last_progress:
                 context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                              text=f"🎧 {name}\n⏳ {duration}\n\n\nConverting...!\n{progress}")
+                                              text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion in progress...\n{progress}")
                 last_progress = progress
             time.sleep(3)
     if last_progress != '▣' * 25:
@@ -174,7 +173,7 @@ def download_mp3(update: Update, context: CallbackContext):
 
     mp3_title, mp3_artist = yt.title, yt.author
     get_metadata()
-    audio = EasyID3(mp3_path.split('/')[-1])
+    audio = EasyID3(mp3_name)
     audio["title"] = mp3_title
     audio["artist"] = mp3_artist
     audio.save()
