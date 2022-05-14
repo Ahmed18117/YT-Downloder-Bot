@@ -143,18 +143,23 @@ def download_mp3(update: Update, context: CallbackContext):
                                shell=True,
                                universal_newlines=True)
 
-    last_progress = ""
+    last_progress = '▢' * 25
+    last_time = time.time()
+    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
+                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion in progress...\n{last_progress}")
     for line in process.stdout:
         if line.startswith('size'):
             mp3_converted_size = int(line.split()[1][:-2])
             bar_length = 25
             bars = int(mp3_converted_size / mp3_size * bar_length)
             progress = f"{'▣' * bars}{(bar_length - bars) * '▢'}"
-            if progress != last_progress:
+            diff = time.time() - last_time
+            if diff >= 3 and progress != last_progress:
                 context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                               text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion in progress...\n{progress}")
                 last_progress = progress
-            time.sleep(3)
+                last_time = time.time()
+
     if last_progress != '▣' * 25:
         context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                       text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion Complete!\n{'▣' * 25}")
