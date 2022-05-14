@@ -82,27 +82,33 @@ def select_resolution(update: Update, context: CallbackContext):
 
 
 def select_bitrate(update: Update, context: CallbackContext):
-    context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-    streams = YouTube(url=links_by_user[update.effective_chat.id]).streams.filter(only_audio=True,
-                                                                                  file_extension='mp4').order_by(
+    global last_sent_message
+    c_id = update.effective_chat.id
+    context.bot.delete_message(chat_id=c_id, message_id=last_sent_message[c_id])
+    context.bot.delete_message(chat_id=c_id, message_id=update.message.message_id)
+
+    context.bot.send_chat_action(chat_id=c_id, action=ChatAction.TYPING)
+    streams = YouTube(url=links_by_user[c_id]).streams.filter(only_audio=True,
+                                                              file_extension='mp4').order_by(
         'abr').desc()
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
         keyboard.append([f"{map_i2e[i + 1]} {stream.abr}  -  {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
-    update.message.reply_text(text="Choose bitrate: ",
-                              reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
-                                                               one_time_keyboard=True), quote=True)
-
+    msg_id = context.bot.send_message(chat_id=c_id, text="Choose bitrate: ",
+                                      reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
+                                                                       one_time_keyboard=True))['message_id']
+    last_sent_message[c_id] = msg_id
     return DOWNLOAD_MP3
 
 
 def download_mp3(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
-    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")[
-        "message_id"]
+    context.bot.delete_message(chat_id=c_id, message_id=last_sent_message[c_id])
+    context.bot.delete_message(chat_id=c_id, message_id=update.message.message_id)
 
+    m_id = update.message.reply_text(text="Starting download...").message_id
     last_progress = ""
 
     def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
@@ -117,7 +123,7 @@ def download_mp3(update: Update, context: CallbackContext):
                                           text=progress)
             last_progress = progress
 
-    yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    yt = YouTube(url=links_by_user[c_id], on_progress_callback=on_progress)
     name = yt.title
     length = yt.length
     duration = format_timespan(length)
@@ -135,7 +141,7 @@ def download_mp3(update: Update, context: CallbackContext):
 
     def get_metadata():
         nonlocal mp3_title, mp3_artist
-        url = links_by_user[update.effective_chat.id]
+        url = links_by_user[c_id]
         ydl = youtube_dl.YoutubeDL({})
         with ydl:
             video = ydl.extract_info(url, download=False)
@@ -158,7 +164,7 @@ def download_mp3(update: Update, context: CallbackContext):
     context.bot.send_audio(chat_id=c_id, timeout=1000, audio=open(mp3_name, 'rb'),
                            duration=length,
                            reply_markup=ReplyKeyboardRemove(),
-                           reply_to_message_id=messages_by_user[update.effective_chat.id],
+                           reply_to_message_id=messages_by_user[c_id],
                            caption=mp3_artist + " - " + mp3_title)
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
     os.remove(streams[stream_id].default_filename)
