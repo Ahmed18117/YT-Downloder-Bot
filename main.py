@@ -24,6 +24,8 @@ links_by_user = {}
 streams_by_user = {}
 yt_regex = "(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(?:.*v=|v\/|\/)([\w\-_]+)\&?"
 
+map_i2e = {0: '0️⃣', 1: '1️⃣', 2: '2️⃣', 3: '3️⃣', 4: '4️⃣', 5: '5️⃣', 6: '6️⃣', 7: '7️⃣', 8: '8️⃣', 9: '9️⃣'}
+
 
 def start(update: Update, context: CallbackContext):
     update.message.reply_text("Please enter any youtube video link: ", quote=True)
@@ -57,7 +59,7 @@ def select_resolution(update: Update, context: CallbackContext):
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
-        keyboard.append([f"{i + 1}. {stream.resolution} --> {get_size_format(stream.filesize)}"])
+        keyboard.append([f"{map_i2e[i + 1]} {stream.resolution}  -  {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
     update.message.reply_text(text="Choose resolution: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
@@ -73,7 +75,7 @@ def select_bitrate(update: Update, context: CallbackContext):
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
-        keyboard.append([f"{i + 1}. {stream.abr} ➡️ {get_size_format(stream.filesize)}"])
+        keyboard.append([f"{map_i2e[i + 1]} {stream.abr}  -  {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
     update.message.reply_text(text="Choose bitrate: ",
                               reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
@@ -106,7 +108,7 @@ def download_mp3(update: Update, context: CallbackContext):
     length = yt.length
     duration = format_timespan(length)
     streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
-    stream_id = int(update.message.text.split('.')[0]) - 1
+    stream_id = int(update.message.text[:1]) - 1
     video_path = '/home/ymollik/Code/YT-Downloder-Bot/' + streams[stream_id].default_filename
     mp3_path = video_path.replace(".mp4", ".mp3")
     mp3_name = mp3_path.split('/')[-1]
@@ -172,7 +174,7 @@ def download_video(update: Update, context: CallbackContext):
     length = yt.length
     duration = format_timespan(length)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
-    stream_id = int(update.message.text.split('.')[0]) - 1
+    stream_id = int(update.message.text[:1]) - 1
     streams[stream_id].download()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
@@ -204,9 +206,9 @@ def main():
                                 MessageHandler(Filters.text("🎵 Download Mp3"), select_bitrate),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
-                             MessageHandler(Filters.regex("."), download_video)],
+                             MessageHandler(Filters.text, download_video)],
             DOWNLOAD_MP3: [MessageHandler(Filters.text("❌ Exit"), exit_it),
-                           MessageHandler(Filters.regex("."), download_mp3)],
+                           MessageHandler(Filters.text, download_mp3)],
         },
         fallbacks=[]
     )
