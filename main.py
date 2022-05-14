@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 YOUTUBE_LINK, SELECT_RESOLUTION, DOWNLOAD_VIDEO, DOWNLOAD_MP3 = range(4)
 links_by_user = {}
+messages_by_user = {}
+last_sent_message = {}
 streams_by_user = {}
 yt_regex = "(?:https?:\/\/)?(?:www\.)?youtu\.?be(?:\.com)?\/?.*(?:watch|embed)?(?:.*v=|v\/|\/)([\w\-_]+)\&?"
 
@@ -33,13 +35,15 @@ def start(update: Update, context: CallbackContext):
 
 
 def youtube_link(update: Update, context: CallbackContext):
-    global links_by_user
+    global links_by_user, messages_by_user, last_sent_message
     links_by_user[update.effective_chat.id] = update.message.text
-
-    keyword = [["🎬 Download Video"], ["🎵 Download Mp3"], ["❌ Exit"]]
-    update.message.reply_text(text="Choose your format: ",
-                              reply_markup=ReplyKeyboardMarkup(keyboard=keyword, resize_keyboard=True,
-                                                               one_time_keyboard=True), quote=True)
+    messages_by_user[update.effective_chat.id] = update.message.message_id
+    keyword = [["📹 Download Video"], ["🎧 Download Mp3"], ["❌ Exit"]]
+    last_sent_message[update.effective_chat.id] = update.message.reply_text(text="Choose your format: ",
+                                                                            reply_markup=ReplyKeyboardMarkup(
+                                                                                keyboard=keyword, resize_keyboard=True,
+                                                                                one_time_keyboard=True),
+                                                                            quote=True).message_id
 
     return SELECT_RESOLUTION
 
@@ -53,22 +57,31 @@ def get_size_format(b, factor=1024, suffix="B"):
 
 
 def select_resolution(update: Update, context: CallbackContext):
+    global last_sent_message
+    c_id = update.effective_chat.id
+    context.bot.delete_message(chat_id=c_id, message_id=last_sent_message[c_id])
+    context.bot.delete_message(chat_id=c_id, message_id=update.message.message_id)
+
+    context.bot.send_chat_action(chat_id=c_id, action=ChatAction.TYPING)
     global streams_by_user, links_by_user
-    yt = YouTube(url=links_by_user[update.effective_chat.id])
+    yt = YouTube(url=links_by_user[c_id])
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
     keyboard = []
     for i in range(0, len(streams)):
         stream = streams[i]
         keyboard.append([f"{map_i2e[i + 1]} {stream.resolution}  -  {get_size_format(stream.filesize)}"])
     keyboard.append(["❌ Exit"])
-    update.message.reply_text(text="Choose resolution: ",
-                              reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
-                                                               one_time_keyboard=True), quote=True)
+    msg_id = context.bot.send_message(chat_id=c_id, text="Choose resolution: ",
+                                      reply_markup=ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
+                                                                       one_time_keyboard=True))[
+        'message_id']
 
+    last_sent_message[c_id] = msg_id
     return DOWNLOAD_VIDEO
 
 
 def select_bitrate(update: Update, context: CallbackContext):
+    context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
     streams = YouTube(url=links_by_user[update.effective_chat.id]).streams.filter(only_audio=True,
                                                                                   file_extension='mp4').order_by(
         'abr').desc()
@@ -94,17 +107,17 @@ def download_mp3(update: Update, context: CallbackContext):
     def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
         nonlocal last_progress
         filesize = stream.filesize
-        name = stream.title
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"📁 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"🎧 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
             last_progress = progress
 
     yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    name = yt.title
     length = yt.length
     duration = format_timespan(length)
     streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
@@ -114,7 +127,7 @@ def download_mp3(update: Update, context: CallbackContext):
     mp3_name = mp3_path.split('/')[-1]
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Download complete. Converting to mp3...")
+                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nDownload complete!\nConverting to mp3...")
     bash_command = f"ffmpeg -i \"{video_path}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_path}\""
     process = subprocess.Popen(bash_command, shell=True)
     process.wait()
@@ -139,13 +152,14 @@ def download_mp3(update: Update, context: CallbackContext):
     audio.save()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Conversion complete! Sending the mp3 now...")
+                                  text=f"🎧 {name}\n⏳ {duration}\n\n\nConversion complete!\nSending the mp3 now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_AUDIO)
     context.bot.send_audio(chat_id=c_id, timeout=1000, audio=open(mp3_name, 'rb'),
                            duration=length,
-                           reply_markup=ReplyKeyboardRemove())
-    context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Finished sending!")
+                           reply_markup=ReplyKeyboardRemove(),
+                           reply_to_message_id=messages_by_user[update.effective_chat.id],
+                           caption=mp3_artist + " - " + mp3_title)
+    context.bot.delete_message(chat_id=c_id, message_id=m_id)
     os.remove(streams[stream_id].default_filename)
     os.remove(streams[stream_id].default_filename.replace('.mp4', '.mp3'))
     return ConversationHandler.END
@@ -153,24 +167,26 @@ def download_mp3(update: Update, context: CallbackContext):
 
 def download_video(update: Update, context: CallbackContext):
     c_id = update.effective_chat.id
-    m_id = context.bot.send_message(chat_id=c_id, text="Starting download...")["message_id"]
+    context.bot.delete_message(chat_id=c_id, message_id=last_sent_message[c_id])
+    context.bot.delete_message(chat_id=c_id, message_id=update.message.message_id)
+    m_id = update.message.reply_text(text="Starting download...").message_id
 
     last_progress = ""
 
     def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
         nonlocal last_progress
         filesize = stream.filesize
-        name = stream.title
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"📁 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"📹 {name}\n⏳ {duration}\n\n\nDownloading...\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
             last_progress = progress
 
-    yt = YouTube(url=links_by_user[update.effective_chat.id], on_progress_callback=on_progress)
+    yt = YouTube(url=links_by_user[c_id], on_progress_callback=on_progress)
+    name = yt.title
     length = yt.length
     duration = format_timespan(length)
     streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
@@ -178,11 +194,12 @@ def download_video(update: Update, context: CallbackContext):
     streams[stream_id].download()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text="Download complete! Sending the video now...")
+                                  text=f"📹 {name}\n⏳ {duration}\n\n\nDownload complete!\nSending the video now...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_VIDEO)
     context.bot.send_video(chat_id=c_id, timeout=1000, video=open(streams[stream_id].default_filename, 'rb'),
                            caption=streams[stream_id].title, supports_streaming=True, duration=length,
-                           reply_markup=ReplyKeyboardRemove())
+                           reply_markup=ReplyKeyboardRemove(),
+                           reply_to_message_id=messages_by_user[c_id])
     context.bot.delete_message(chat_id=c_id, message_id=m_id)
     os.remove(streams[stream_id].default_filename)
     return ConversationHandler.END
@@ -202,8 +219,8 @@ def main():
         entry_points=[CommandHandler('start', start), MessageHandler(Filters.regex(yt_regex), youtube_link)],
         states={
             YOUTUBE_LINK: [MessageHandler(Filters.regex(yt_regex), youtube_link)],
-            SELECT_RESOLUTION: [MessageHandler(Filters.text("🎬 Download Video"), select_resolution),
-                                MessageHandler(Filters.text("🎵 Download Mp3"), select_bitrate),
+            SELECT_RESOLUTION: [MessageHandler(Filters.text("📹 Download Video"), select_resolution),
+                                MessageHandler(Filters.text("🎧 Download Mp3"), select_bitrate),
                                 MessageHandler(Filters.regex(yt_regex), youtube_link),
                                 MessageHandler(Filters.text("❌ Exit"), exit_it)],
             DOWNLOAD_VIDEO: [MessageHandler(Filters.text("❌ Exit"), exit_it),
