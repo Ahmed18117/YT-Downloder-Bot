@@ -267,7 +267,8 @@ def main():
                            MessageHandler(Filters.regex(yt_regex), youtube_link),
                            MessageHandler(Filters.text, download_mp3)],
         },
-        fallbacks=[]
+        fallbacks=[],
+        run_async=True
     )
 
     dp.add_handler(conv_handler)
