@@ -111,18 +111,21 @@ def download_mp3(update: Update, context: CallbackContext):
 
     m_id = update.message.reply_text(text="Starting download...").message_id
     last_progress = ""
+    dots = 1
 
     def on_progress(stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
-        nonlocal last_progress
+        nonlocal last_progress, dots
         filesize = stream.filesize
         bytes_received = filesize - bytes_remaining
         bar_length = 25
         bars = int(bytes_received / filesize * bar_length)
-        progress = f"Downloading...\n\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
+        progress = f"Downloading{dots * '.'}\n\n{'▣' * bars}{(bar_length - bars) * '▢'}\n{get_size_format(bytes_received)} / {get_size_format(filesize)}"
         if progress != last_progress:
             context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                           text=progress)
             last_progress = progress
+        dots += 1
+        dots %= 4
 
     yt = YouTube(url=links_by_user[c_id], on_progress_callback=on_progress)
     name = yt.title
@@ -130,8 +133,8 @@ def download_mp3(update: Update, context: CallbackContext):
     duration = format_timespan(length)
     streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
     stream_id = int(update.message.text[:1]) - 1
-    video_name = streams[stream_id].default_filename
-    mp3_name = video_name.replace(".mp4", ".mp3")
+    video_name = name + ".mp4"
+    mp3_name = name + ".mp3"
     mp3_size = length * 16
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
@@ -143,10 +146,10 @@ def download_mp3(update: Update, context: CallbackContext):
                                shell=True,
                                universal_newlines=True)
 
-    last_progress = '▢' * 25
     last_time = time.time()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"Converting\n\n{last_progress}")
+                                  text=f"Converting\n\n{'▢' * 25}")
+    dots = 1
     for line in process.stdout:
         if line.startswith('size'):
             mp3_converted_size = int(line.split()[1][:-2])
@@ -154,11 +157,12 @@ def download_mp3(update: Update, context: CallbackContext):
             bars = int(mp3_converted_size / mp3_size * bar_length)
             progress = f"{'▣' * bars}{(bar_length - bars) * '▢'}"
             diff = time.time() - last_time
-            if diff >= 3 and progress != last_progress:
+            if diff >= 1:
                 context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                              text=f"Converting\n\n{progress}")
-                last_progress = progress
+                                              text=f"Converting{dots * '.'}\n\n{progress}")
                 last_time = time.time()
+                dots += 1
+                dots %= 4
 
     if last_progress != '▣' * 25:
         context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
