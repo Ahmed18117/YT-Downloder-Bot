@@ -133,8 +133,8 @@ def download_mp3(update: Update, context: CallbackContext):
     duration = format_timespan(length)
     streams = yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc()
     stream_id = int(update.message.text[:1]) - 1
-    video_name = name + ".mp4"
-    mp3_name = name + ".mp3"
+    video_name = streams[stream_id].default_filename
+    mp3_name = video_name.replace(".mp4", ".mp3")
     mp3_size = length * 16
     streams[stream_id].download()
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
