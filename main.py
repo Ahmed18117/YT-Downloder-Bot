@@ -38,7 +38,7 @@ def start(update: Update, context: CallbackContext):
 
 def youtube_link(update: Update, context: CallbackContext):
     global links_by_user, messages_by_user, last_sent_message
-    links_by_user[update.effective_chat.id] = update.message.text
+    links_by_user[update.effective_chat.id] = "https://" + update.message.text.split('https://', 1)[1]
     messages_by_user[update.effective_chat.id] = update.message.message_id
     keyword = [["📹 Download Video"], ["🎧 Download Mp3"], ["❌ Exit"]]
     last_sent_message[update.effective_chat.id] = update.message.reply_text(text="Choose your format: ",
@@ -249,7 +249,7 @@ def exit_it(update: Update, context: CallbackContext):
 
 def main():
     credentials = os.environ
-    updater = Updater(credentials['tg_token'], use_context=True, base_url='185.194.218.238:8081/bot')
+    updater = Updater(credentials['tg_token'], use_context=True, base_url=credentials['server'] + '/bot')
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
