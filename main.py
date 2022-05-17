@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 import youtube_dl
 from mutagen.easyid3 import EasyID3
 import subprocess
@@ -140,6 +141,7 @@ def download_mp3(update: Update, context: CallbackContext):
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
                                   text=f"Download complete!\n\nStarting conversion to mp3...")
     bash_command = f"ffmpeg -i \"{video_name}\" -vn -ar 44100 -ac 2 -b:a 128k \"{mp3_name}\""
+    conversion_start_time = time.time()
     process = subprocess.Popen(bash_command, cwd=os.getcwd(),
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT,
@@ -163,10 +165,11 @@ def download_mp3(update: Update, context: CallbackContext):
                 last_time = time.time()
                 dots += 1
                 dots %= 4
+    total_conversion_time = format_timespan(time.time() - conversion_start_time)
 
     if last_progress != '▣' * 25:
         context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                      text=f"Conversion Complete!\n\n{'▣' * 25}")
+                                      text=f"Conversion Complete!\nTotal conversion time: {total_conversion_time}\n\n{'▣' * 25}")
 
     def get_metadata():
         nonlocal mp3_title, mp3_artist
@@ -188,7 +191,7 @@ def download_mp3(update: Update, context: CallbackContext):
     audio.save()
 
     context.bot.edit_message_text(chat_id=c_id, message_id=m_id,
-                                  text=f"Conversion complete!\n\nSending the mp3 now...")
+                                  text=f"Conversion Complete!\nTotal conversion time: {total_conversion_time}\n\nUploading mp3...")
     context.bot.send_chat_action(chat_id=c_id, action=ChatAction.UPLOAD_AUDIO)
     context.bot.send_audio(chat_id=c_id, timeout=1000, audio=open(mp3_name, 'rb'),
                            duration=length,
@@ -248,8 +251,8 @@ def exit_it(update: Update, context: CallbackContext):
 
 
 def main():
-    credentials = os.environ
-    updater = Updater(credentials['tg_token'], use_context=True, base_url=credentials['server'] + '/bot')
+    credentials = json.load(open("creds.json"))
+    updater = Updater(credentials['tg_token'], use_context=True, base_url=credentials['server'])
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
