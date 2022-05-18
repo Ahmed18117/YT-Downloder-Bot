@@ -13,6 +13,7 @@ keyboard = "^0.13.5"
 humanfriendly = "^10.0"
 mutagen = "^1.45.1"
 youtube_dl = "^2021.12.17"
+urlextract = "^1.6.0"
 
 [tool.poetry.dev-dependencies]
 

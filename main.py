@@ -2,6 +2,8 @@ import logging
 import os
 import json
 import youtube_dl
+from urlextract import URLExtract
+import re
 from mutagen.easyid3 import EasyID3
 import subprocess
 from humanfriendly import format_timespan
@@ -39,7 +41,12 @@ def start(update: Update, context: CallbackContext):
 
 def youtube_link(update: Update, context: CallbackContext):
     global links_by_user, messages_by_user, last_sent_message
-    links_by_user[update.effective_chat.id] = "https://" + update.message.text.split('https://', 1)[1]
+    urls = URLExtract().find_urls(update.message.text)
+    for url in urls:
+        if re.match(yt_regex, url):
+            links_by_user[update.effective_chat.id] = url
+            print(url)
+            break
     messages_by_user[update.effective_chat.id] = update.message.message_id
     keyword = [["📹 Download Video"], ["🎧 Download Mp3"], ["❌ Exit"]]
     last_sent_message[update.effective_chat.id] = update.message.reply_text(text="Choose your format: ",
